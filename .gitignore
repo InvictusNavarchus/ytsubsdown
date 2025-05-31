@@ -148,6 +148,7 @@ Desktop.ini
 # Logs
 *.log
 logs/
+copilot-logs/
 
 # Temporary files
 *.tmp
