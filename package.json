@@ -1,6 +1,6 @@
 {
   "name": "ytsubsdown",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "YouTube subtitle downloader web application",
   "main": "public/index.html",
   "scripts": {
