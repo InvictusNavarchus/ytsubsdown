@@ -4,7 +4,8 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import timedelta, datetime
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
+from error_handler import handle_error, ErrorCategory, ErrorSeverity
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
@@ -166,22 +167,27 @@ class YouTubeSubtitleDownloader:
         self.player_response = None
         self.video_metadata = {}
         self.available_tracks = []
+        self._last_detailed_error = None
 
     def _extract_video_id(self, url: str) -> Optional[str]:
         """
         Extracts the YouTube video ID from a URL using regex.
         """
-        patterns = [
-            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', 
-            r'(?:embed\/|youtu\.be\/)([0-9A-Za-z_-]{11})' 
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                video_id = match.group(1)
-                logger.debug(f"Extracted video ID: {video_id}")
-                return video_id
-        return None
+        try:
+            patterns = [
+                r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', 
+                r'(?:embed\/|youtu\.be\/)([0-9A-Za-z_-]{11})' 
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, url)
+                if match:
+                    video_id = match.group(1)
+                    logger.debug(f"Extracted video ID: {video_id}")
+                    return video_id
+            return None
+        except Exception as e:
+            detailed_error = handle_error(e, {"url": url, "function": "_extract_video_id"}, logger)
+            raise detailed_error.error
 
     def _fetch_page_html(self) -> Optional[str]:
         """
@@ -193,30 +199,58 @@ class YouTubeSubtitleDownloader:
             logger.debug(f"Successfully fetched HTML for {self.video_url} (status: {response.status_code})")
             return response.text
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching URL {self.video_url}: {e}")
+            detailed_error = handle_error(e, {
+                "url": self.video_url,
+                "function": "_fetch_page_html",
+                "video_id": self.video_id
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
+            return None
+        except Exception as e:
+            detailed_error = handle_error(e, {
+                "url": self.video_url,
+                "function": "_fetch_page_html",
+                "video_id": self.video_id
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
             return None
 
     def _extract_yt_initial_player_response(self, html_content: str) -> Optional[dict]:
         """
         Extracts the ytInitialPlayerResponse JSON object from the page HTML.
         """
-        patterns = [
-            r"var ytInitialPlayerResponse\s*=\s*({.+?});(?:var meta|</script)",
-            r"ytInitialPlayerResponse\s*=\s*({.+?});(?:var meta|</script)"
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, html_content)
-            if match:
-                try:
-                    json_data_str = match.group(1)
-                    data = json.loads(json_data_str)
-                    logger.debug("Successfully parsed ytInitialPlayerResponse.")
-                    return data
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode ytInitialPlayerResponse JSON: {e}")
-                    return None
-        logger.warn("Could not find ytInitialPlayerResponse in page HTML using known patterns.")
-        return None
+        try:
+            patterns = [
+                r"var ytInitialPlayerResponse\s*=\s*({.+?});(?:var meta|</script)",
+                r"ytInitialPlayerResponse\s*=\s*({.+?});(?:var meta|</script)"
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, html_content)
+                if match:
+                    try:
+                        json_data_str = match.group(1)
+                        data = json.loads(json_data_str)
+                        logger.debug("Successfully parsed ytInitialPlayerResponse.")
+                        return data
+                    except json.JSONDecodeError as e:
+                        detailed_error = handle_error(e, {
+                            "function": "_extract_yt_initial_player_response",
+                            "video_id": self.video_id,
+                            "pattern_used": pattern,
+                            "json_snippet": json_data_str[:200] if 'json_data_str' in locals() else "N/A"
+                        }, logger)
+                        continue
+            
+            logger.warn("Could not find ytInitialPlayerResponse in page HTML using known patterns.")
+            return None
+        except Exception as e:
+            detailed_error = handle_error(e, {
+                "function": "_extract_yt_initial_player_response",
+                "video_id": self.video_id,
+                "html_length": len(html_content) if html_content else 0
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
+            return None
 
     def _extract_views_and_date_from_html(self, html_content: str) -> Dict[str, Optional[str]]:
         """
@@ -363,7 +397,20 @@ class YouTubeSubtitleDownloader:
             logger.debug(f"Successfully fetched subtitle XML from {track_url}")
             return response.text
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching subtitle XML from {track_url}: {e}")
+            detailed_error = handle_error(e, {
+                "function": "_fetch_subtitle_xml",
+                "track_url": track_url,
+                "video_id": self.video_id
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
+            return None
+        except Exception as e:
+            detailed_error = handle_error(e, {
+                "function": "_fetch_subtitle_xml",
+                "track_url": track_url,
+                "video_id": self.video_id
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
             return None
 
     def _parse_subtitle_xml_to_srt(self, xml_text: str) -> Optional[str]:
@@ -426,11 +473,29 @@ class YouTubeSubtitleDownloader:
             logger.debug("Successfully parsed XML to SRT format.")
             return "\n".join(srt_lines)
         except ET.ParseError as e:
-            logger.error(f"Error parsing subtitle XML: {e}")
+            detailed_error = handle_error(e, {
+                "function": "_parse_subtitle_xml_to_srt",
+                "video_id": self.video_id,
+                "xml_length": len(xml_text) if xml_text else 0,
+                "xml_snippet": xml_text[:200] if xml_text else "N/A"
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
             return None
         except Exception as e:
-            logger.error(f"An unexpected error occurred during XML parsing: {e}")
+            detailed_error = handle_error(e, {
+                "function": "_parse_subtitle_xml_to_srt",
+                "video_id": self.video_id,
+                "xml_length": len(xml_text) if xml_text else 0
+            }, logger)
+            self._last_detailed_error = detailed_error.to_dict()
             return None
+
+    def get_last_error(self) -> Optional[Dict[str, Any]]:
+        """
+        Returns the last detailed error that occurred, if any.
+        This method allows API consumers to get comprehensive error information.
+        """
+        return getattr(self, '_last_detailed_error', None)
 
     def get_subtitle_srt(self, track_info: dict) -> Optional[str]:
         """
