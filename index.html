@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TubeScribe - YouTube Subtitle Downloader</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📹</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">📹</span>
+                <h1>TubeScribe</h1>
+            </div>
+            <p class="subtitle">Extract subtitles from YouTube videos instantly</p>
+        </header>
+
+        <main class="main">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="videoUrl">YouTube Video URL</label>
+                    <input 
+                        type="url" 
+                        id="videoUrl" 
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        autocomplete="off"
+                    >
+                </div>
+                
+                <div class="options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="includeMetadata" checked>
+                        <span class="checkmark"></span>
+                        Include video metadata
+                    </label>
+                </div>
+
+                <button id="fetchBtn" class="btn btn-primary">
+                    <span class="btn-text">Get Subtitles</span>
+                    <div class="spinner hidden"></div>
+                </button>
+            </div>
+
+            <div id="videoInfo" class="video-info hidden">
+                <div class="video-card">
+                    <div class="video-details">
+                        <h3 id="videoTitle"></h3>
+                        <p id="videoChannel"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subtitleTracks" class="subtitle-tracks hidden">
+                <h3>Available Subtitles</h3>
+                <div id="tracksList" class="tracks-list"></div>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <div class="result-header">
+                    <h3>Subtitle Content</h3>
+                    <div class="action-buttons">
+                        <button id="copyBtn" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy to Clipboard
+                        </button>
+                        <button id="downloadBtn" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7,10 12,15 17,10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download SRT
+                        </button>
+                    </div>
+                </div>
+                <div class="result-content">
+                    <pre id="subtitleContent"></pre>
+                </div>
+            </div>
+
+            <div id="errorMessage" class="error-message hidden">
+                <div class="error-content">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    <span id="errorText"></span>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 TubeScribe. Extract YouTube subtitles with ease.</p>
+        </footer>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
