@@ -101,4 +101,4 @@ The application requires no environment variables - it works out of the box!
 
 ## License
 
-MIT License - see LICENSE file for details
+GPL-3.0 License - see LICENSE file for details
