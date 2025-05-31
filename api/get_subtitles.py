@@ -2,11 +2,13 @@ from http.server import BaseHTTPRequestHandler
 import json
 import sys
 import os
+import traceback
 
 # Add the api directory to the Python path
 sys.path.append(os.path.dirname(__file__))
 
 from youtube_downloader import YouTubeSubtitleDownloader, format_metadata_header
+from error_handler import handle_error, ErrorCategory, ErrorSeverity
 
 class handler(BaseHTTPRequestHandler):
     """
@@ -14,6 +16,7 @@ class handler(BaseHTTPRequestHandler):
     """
     
     def do_POST(self):
+        detailed_error = None
         try:
             # Parse request body
             content_length = int(self.headers['Content-Length'])
@@ -39,14 +42,26 @@ class handler(BaseHTTPRequestHandler):
             if not downloader.video_metadata:
                 tracks = downloader.get_available_tracks()
                 if not tracks:
-                    self._send_error(404, "Failed to fetch video information")
+                    last_error = downloader.get_last_error()
+                    error_msg = "Failed to fetch video information"
+                    
+                    if last_error:
+                        self._send_detailed_error(404, error_msg, last_error)
+                    else:
+                        self._send_error(404, error_msg)
                     return
             
             # Get subtitle content
             srt_content = downloader.get_subtitle_srt(track_info)
             
             if srt_content is None:
-                self._send_error(500, "Failed to fetch or parse subtitle content")
+                last_error = downloader.get_last_error()
+                error_msg = "Failed to fetch or parse subtitle content"
+                
+                if last_error:
+                    self._send_detailed_error(500, error_msg, last_error)
+                else:
+                    self._send_error(500, error_msg)
                 return
             
             # Format final content
@@ -66,9 +81,18 @@ class handler(BaseHTTPRequestHandler):
             self._send_json_response(200, response_data)
             
         except ValueError as e:
-            self._send_error(400, str(e))
+            detailed_error = handle_error(e, {
+                "video_url": data.get('video_url') if 'data' in locals() else None,
+                "track_info": data.get('track_info') if 'data' in locals() else None
+            })
+            self._send_detailed_error(400, str(e), detailed_error.to_dict())
         except Exception as e:
-            self._send_error(500, f"Internal server error: {str(e)}")
+            detailed_error = handle_error(e, {
+                "video_url": data.get('video_url') if 'data' in locals() else None,
+                "track_info": data.get('track_info') if 'data' in locals() else None,
+                "endpoint": "get_subtitles"
+            })
+            self._send_detailed_error(500, f"Internal server error: {str(e)}", detailed_error.to_dict())
     
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
@@ -88,6 +112,14 @@ class handler(BaseHTTPRequestHandler):
     def _send_error(self, status_code, message):
         """Send error response"""
         self._send_json_response(status_code, {"error": message})
+    
+    def _send_detailed_error(self, status_code, message, detailed_error_info=None):
+        """Send detailed error response with traceback information"""
+        error_response = {
+            "error": message,
+            "detailed_error": detailed_error_info
+        }
+        self._send_json_response(status_code, error_response)
     
     def _send_cors_headers(self):
         """Send CORS headers"""
