@@ -246,6 +246,28 @@ body {
     font-weight: 500;
 }
 
+.video-metadata {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.metadata-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+}
+
+.metadata-item:empty {
+    display: none;
+}
+
 /* Subtitle tracks */
 .subtitle-tracks {
     margin-bottom: 2rem;

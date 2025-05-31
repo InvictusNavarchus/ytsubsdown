@@ -209,7 +209,65 @@ class YTSubsDown {
     displayVideoInfo(metadata) {
         document.getElementById('videoTitle').textContent = metadata.title;
         document.getElementById('videoChannel').textContent = `by ${metadata.channel}`;
+        
+        // Display view count
+        const viewsElement = document.getElementById('videoViews');
+        if (metadata.view_count) {
+            const formattedViews = this.formatViewCount(metadata.view_count);
+            viewsElement.textContent = `👁️ ${formattedViews} views`;
+        } else {
+            viewsElement.textContent = '';
+        }
+        
+        // Display publish date
+        const dateElement = document.getElementById('videoDate');
+        if (metadata.publish_date) {
+            const formattedDate = this.formatPublishDate(metadata.publish_date);
+            dateElement.textContent = `📅 ${formattedDate}`;
+        } else {
+            dateElement.textContent = '';
+        }
+        
         document.getElementById('videoInfo').classList.remove('hidden');
+    }
+
+    /**
+     * Format view count for display
+     */
+    formatViewCount(viewCount) {
+        if (viewCount >= 1000000000) {
+            return `${(viewCount / 1000000000).toFixed(1)}B`;
+        } else if (viewCount >= 1000000) {
+            return `${(viewCount / 1000000).toFixed(1)}M`;
+        } else if (viewCount >= 1000) {
+            return `${(viewCount / 1000).toFixed(1)}K`;
+        } else {
+            return viewCount.toLocaleString();
+        }
+    }
+
+    /**
+     * Format publish date for display
+     */
+    formatPublishDate(dateStr) {
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 30) {
+                return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+            } else if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                return `${months} month${months === 1 ? '' : 's'} ago`;
+            } else {
+                const years = Math.floor(diffDays / 365);
+                return `${years} year${years === 1 ? '' : 's'} ago`;
+            }
+        } catch (error) {
+            return dateStr; // Fall back to original string if parsing fails
+        }
     }
 
     /**
