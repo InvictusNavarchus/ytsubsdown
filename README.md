@@ -38,7 +38,7 @@ This application is designed to be deployed on Vercel:
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/InvictusNavarchus/ytsubsdown
 cd ytsubsdown
 
 # Install Python dependencies using uv
