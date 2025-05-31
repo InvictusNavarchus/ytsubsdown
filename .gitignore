@@ -153,3 +153,6 @@ copilot-logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Others
+unused-tests/
