@@ -136,12 +136,12 @@ def format_metadata_header(metadata: dict) -> str:
         header_parts.append(f'channel = "{metadata["channel"]}"')
     if metadata.get("url"):
         header_parts.append(f'url = "{metadata["url"]}"')
-    if metadata.get("description"):
-        header_parts.append(f'description = "{metadata["description"]}"')
-    if metadata.get("view_count") is not None:
-        header_parts.append(f'view_count = {metadata["view_count"]}')
     if metadata.get("publish_date"):
         header_parts.append(f'publish_date = "{metadata["publish_date"]}"')
+    if metadata.get("view_count") is not None:
+        header_parts.append(f'view_count = {metadata["view_count"]}')
+    if metadata.get("description"):
+        header_parts.append(f'description = "{metadata["description"]}"')
     
     header_parts.append("\n[transcript]\n\n```")
     return "\n".join(header_parts)
