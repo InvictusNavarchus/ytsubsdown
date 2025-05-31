@@ -1,5 +1,5 @@
 [project]
-name = "tubescribe"
+name = "ytsubsdown"
 version = "0.1.0"
 description = "YouTube subtitle downloader web application"
 authors = [

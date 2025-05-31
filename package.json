@@ -1,5 +1,5 @@
 {
-  "name": "tubescribe",
+  "name": "ytsubsdown",
   "version": "0.1.0",
   "description": "YouTube subtitle downloader web application",
   "main": "index.html",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/tubescribe.git"
+    "url": "git+https://github.com/yourusername/ytsubsdown.git"
   },
   "keywords": [
     "youtube",

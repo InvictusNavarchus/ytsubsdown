@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local development server for TubeScribe
+Local development server for YTSubsDown
 This script runs both the static file server and provides local API endpoints for testing
 """
 
@@ -18,7 +18,7 @@ sys.path.insert(0, str(api_dir))
 
 from youtube_downloader import YouTubeSubtitleDownloader, format_metadata_header
 
-class TubeScribeHandler(http.server.SimpleHTTPRequestHandler):
+class YTSubsDownHandler(http.server.SimpleHTTPRequestHandler):
     """Custom handler that serves static files and API endpoints"""
     
     def do_POST(self):
@@ -141,7 +141,7 @@ class TubeScribeHandler(http.server.SimpleHTTPRequestHandler):
 
 def main():
     port = 3000
-    print(f"🚀 Starting TubeScribe development server on http://localhost:{port}")
+    print(f"🚀 Starting YTSubsDown development server on http://localhost:{port}")
     print("📹 Features:")
     print("   • Static file serving for frontend")
     print("   • Local API endpoints for testing")
@@ -149,7 +149,7 @@ def main():
     print("\n🛑 Press Ctrl+C to stop the server")
     
     try:
-        with socketserver.TCPServer(("", port), TubeScribeHandler) as httpd:
+        with socketserver.TCPServer(("", port), YTSubsDownHandler) as httpd:
             httpd.serve_forever()
     except KeyboardInterrupt:
         print("\n👋 Server stopped")

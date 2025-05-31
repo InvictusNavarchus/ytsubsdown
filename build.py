@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Production build script for TubeScribe
+Production build script for YTSubsDown
 This script prepares the application for deployment
 """
 
@@ -12,7 +12,7 @@ from pathlib import Path
 def optimize_for_production():
     """Optimize the application for production deployment"""
     
-    print("🔧 Preparing TubeScribe for production deployment...")
+    print("🔧 Preparing YTSubsDown for production deployment...")
     
     # Ensure all required files exist
     required_files = [
@@ -89,7 +89,7 @@ def create_deployment_summary():
     """Create a deployment summary"""
     
     summary = """
-# TubeScribe Deployment Summary
+# YTSubsDown Deployment Summary
 
 ## 📁 Project Structure
 - Frontend: HTML, CSS, JavaScript (static files)

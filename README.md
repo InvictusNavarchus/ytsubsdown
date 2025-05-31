@@ -1,4 +1,4 @@
-# TubeScribe - YouTube Subtitle Downloader
+# YTSubsDown - YouTube Subtitle Downloader
 
 A beautiful, modern web application for extracting and downloading subtitles from YouTube videos.
 
@@ -39,7 +39,7 @@ This application is designed to be deployed on Vercel:
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd tubescribe
+cd ytsubsdown
 
 # Install Python dependencies using uv
 uv sync

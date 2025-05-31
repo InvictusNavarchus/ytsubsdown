@@ -1,4 +1,4 @@
-# Deployment Checklist for TubeScribe
+# Deployment Checklist for YTSubsDown
 
 ## Pre-deployment
 

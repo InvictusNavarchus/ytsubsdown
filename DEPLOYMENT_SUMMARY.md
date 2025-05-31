@@ -1,5 +1,5 @@
 
-# TubeScribe Deployment Summary
+# YTSubsDown Deployment Summary
 
 ## 📁 Project Structure
 - Frontend: HTML, CSS, JavaScript (static files)

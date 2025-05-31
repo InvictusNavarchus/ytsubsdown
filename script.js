@@ -1,9 +1,9 @@
 /**
- * TubeScribe JavaScript functionality
+ * YTSubsDown JavaScript functionality
  * Handles YouTube subtitle extraction and user interactions
  */
 
-class TubeScribe {
+class YTSubsDown {
     constructor() {
         this.currentVideoData = null;
         this.currentSubtitleContent = null;
@@ -382,5 +382,5 @@ class TubeScribe {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new TubeScribe();
+    new YTSubsDown();
 });
