@@ -1,6 +1,6 @@
 [project]
 name = "ytsubsdown"
-version = "0.1.2"
+version = "0.2.0"
 description = "YouTube subtitle downloader web application"
 authors = [
     {name = "InvictusNavarchus"}
