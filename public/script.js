@@ -89,7 +89,10 @@ class YTSubsDown {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to fetch video information');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to fetch video information', {
+                    cause: errorData.detailed_error || null
+                });
             }
 
             this.currentVideoData = data;
@@ -98,7 +101,7 @@ class YTSubsDown {
 
         } catch (error) {
             console.error('Error fetching video info:', error);
-            this.showError(error.message || 'Failed to fetch video information');
+            this.showError(error.message || 'Failed to fetch video information', error.cause);
         } finally {
             this.setLoading(false);
         }
@@ -126,6 +129,12 @@ class YTSubsDown {
             const data = await response.json();
 
             if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch subtitles', {
+                    cause: data.detailed_error || null
+                });
+            }
+
+            if (!response.ok) {
                 throw new Error(data.error || 'Failed to fetch subtitles');
             }
 
@@ -136,7 +145,7 @@ class YTSubsDown {
 
         } catch (error) {
             console.error('Error fetching subtitles:', error);
-            this.showError(error.message || 'Failed to fetch subtitles');
+            this.showError(error.message || 'Failed to fetch subtitles', error.cause);
         }
     }
 
@@ -349,11 +358,125 @@ class YTSubsDown {
     }
 
     /**
-     * Show error message
+     * Show error message with optional detailed traceback
      */
-    showError(message) {
+    showError(message, detailedError = null) {
         document.getElementById('errorText').textContent = message;
         document.getElementById('errorMessage').classList.remove('hidden');
+        
+        // Handle detailed error information
+        const errorContainer = document.getElementById('errorMessage');
+        const existingTraceback = errorContainer.querySelector('.error-traceback');
+        if (existingTraceback) {
+            existingTraceback.remove();
+        }
+        
+        if (detailedError) {
+            this.createErrorTraceback(errorContainer, detailedError);
+        }
+    }
+
+    /**
+     * Creates a collapsible error traceback section
+     */
+    createErrorTraceback(errorContainer, detailedError) {
+        const tracebackDiv = document.createElement('div');
+        tracebackDiv.className = 'error-traceback';
+        
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'traceback-toggle';
+        toggleButton.textContent = 'Show Traceback';
+        toggleButton.type = 'button';
+        
+        const tracebackContent = document.createElement('div');
+        tracebackContent.className = 'traceback-content';
+        tracebackContent.style.display = 'none';
+        
+        // Build the detailed error information
+        const errorInfo = this.formatDetailedError(detailedError);
+        tracebackContent.innerHTML = errorInfo;
+        
+        // Toggle functionality
+        toggleButton.addEventListener('click', () => {
+            const isHidden = tracebackContent.style.display === 'none';
+            tracebackContent.style.display = isHidden ? 'block' : 'none';
+            toggleButton.textContent = isHidden ? 'Hide Traceback' : 'Show Traceback';
+            toggleButton.classList.toggle('expanded', isHidden);
+        });
+        
+        tracebackDiv.appendChild(toggleButton);
+        tracebackDiv.appendChild(tracebackContent);
+        errorContainer.appendChild(tracebackDiv);
+    }
+
+    /**
+     * Formats detailed error information for display
+     */
+    formatDetailedError(detailedError) {
+        if (!detailedError) return '<p>No detailed error information available.</p>';
+        
+        let html = '<div class="error-details">';
+        
+        // Error summary
+        html += '<div class="error-section">';
+        html += '<h4>Error Summary</h4>';
+        html += `<p><strong>Type:</strong> ${detailedError.type || 'Unknown'}</p>`;
+        html += `<p><strong>Category:</strong> ${detailedError.category || 'unknown'}</p>`;
+        html += `<p><strong>Severity:</strong> ${detailedError.severity || 'medium'}</p>`;
+        html += `<p><strong>Timestamp:</strong> ${detailedError.timestamp || 'Unknown'}</p>`;
+        html += '</div>';
+        
+        // Suggestions
+        if (detailedError.suggestions && detailedError.suggestions.length > 0) {
+            html += '<div class="error-section">';
+            html += '<h4>Suggestions</h4>';
+            html += '<ul>';
+            detailedError.suggestions.forEach(suggestion => {
+                html += `<li>${this.escapeHtml(suggestion)}</li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+        }
+        
+        // Context information
+        if (detailedError.context && Object.keys(detailedError.context).length > 0) {
+            html += '<div class="error-section">';
+            html += '<h4>Context</h4>';
+            html += '<ul>';
+            Object.entries(detailedError.context).forEach(([key, value]) => {
+                html += `<li><strong>${this.escapeHtml(key)}:</strong> ${this.escapeHtml(String(value))}</li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+        }
+        
+        // Stack trace
+        if (detailedError.traceback && detailedError.traceback.stack_summary) {
+            html += '<div class="error-section">';
+            html += '<h4>Stack Trace</h4>';
+            html += '<div class="stack-trace">';
+            detailedError.traceback.stack_summary.forEach((frame, index) => {
+                html += `<div class="stack-frame">`;
+                html += `<span class="frame-index">${index + 1}.</span> `;
+                html += `<span class="frame-function">${this.escapeHtml(frame.function)}</span> `;
+                html += `<span class="frame-location">in ${this.escapeHtml(frame.filename)}:${frame.line_number}</span>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Escapes HTML characters to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**

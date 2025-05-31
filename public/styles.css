@@ -465,3 +465,127 @@ body {
         flex-direction: column;
     }
 }
+
+/* Error Traceback Styles */
+.error-traceback {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(220, 38, 38, 0.2);
+    padding-top: 1rem;
+}
+
+.traceback-toggle {
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    color: #dc2626;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.traceback-toggle:hover {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.4);
+}
+
+.traceback-toggle.expanded {
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.4);
+}
+
+.traceback-toggle::after {
+    content: '▼';
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.traceback-toggle.expanded::after {
+    transform: rotate(180deg);
+}
+
+.traceback-content {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.error-details {
+    color: #374151;
+}
+
+.error-section {
+    margin-bottom: 1.5rem;
+}
+
+.error-section:last-child {
+    margin-bottom: 0;
+}
+
+.error-section h4 {
+    color: #dc2626;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(220, 38, 38, 0.2);
+    padding-bottom: 0.25rem;
+}
+
+.error-section p {
+    margin-bottom: 0.5rem;
+}
+
+.error-section ul {
+    margin-left: 1rem;
+    list-style-type: disc;
+}
+
+.error-section li {
+    margin-bottom: 0.25rem;
+}
+
+.stack-trace {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 0.75rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.stack-frame {
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.stack-frame:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.frame-index {
+    color: #6b7280;
+    font-weight: 500;
+    min-width: 1.5rem;
+    display: inline-block;
+}
+
+.frame-function {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.frame-location {
+    color: #4b5563;
+    font-style: italic;
+}
