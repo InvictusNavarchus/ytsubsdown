@@ -2,13 +2,100 @@ import requests
 import json
 import re
 import xml.etree.ElementTree as ET
-from datetime import timedelta
+from datetime import timedelta, datetime
 import logging
 from typing import Dict, List, Optional, Union
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
 logger = logging.getLogger('YTSubDownloader')
+
+def parse_view_count(view_count_str: str) -> Optional[int]:
+    """
+    Parses view count string (e.g., "2.7M views", "1,234 views") to integer.
+    """
+    if not view_count_str:
+        return None
+    
+    # Remove "views" and any extra whitespace
+    view_str = re.sub(r'\s*views?\s*', '', view_count_str, flags=re.IGNORECASE).strip()
+    
+    if not view_str:
+        return None
+    
+    # Handle multipliers (K, M, B)
+    multipliers = {'K': 1000, 'M': 1000000, 'B': 1000000000}
+    
+    for suffix, multiplier in multipliers.items():
+        if view_str.upper().endswith(suffix):
+            try:
+                number = float(view_str[:-1])
+                return int(number * multiplier)
+            except ValueError:
+                continue
+    
+    # Handle comma-separated numbers
+    try:
+        return int(view_str.replace(',', ''))
+    except ValueError:
+        return None
+
+def parse_publish_date(date_str: str) -> Optional[str]:
+    """
+    Parses YouTube publish date string and converts to YYYY-MM-DD format.
+    Handles various formats like "6 years ago", "Nov 5, 2018", etc.
+    """
+    if not date_str:
+        return None
+    
+    date_str = date_str.strip()
+    
+    # Try to match full date format (e.g., "Nov 5, 2018")
+    full_date_match = re.search(r'([A-Za-z]{3})\s+(\d{1,2}),?\s+(\d{4})', date_str)
+    if full_date_match:
+        try:
+            month_name, day, year = full_date_match.groups()
+            month_names = {
+                'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+            }
+            month = month_names.get(month_name.lower()[:3])
+            if month:
+                return f"{year}-{month}-{int(day):02d}"
+        except (ValueError, KeyError):
+            pass
+    
+    # Try to parse relative dates (e.g., "6 years ago")
+    relative_match = re.search(r'(\d+)\s+(year|month|week|day)s?\s+ago', date_str, re.IGNORECASE)
+    if relative_match:
+        try:
+            amount = int(relative_match.group(1))
+            unit = relative_match.group(2).lower()
+            
+            # Calculate approximate date (this is rough estimation)
+            current_date = datetime.now()
+            if unit == 'year':
+                estimated_date = current_date.replace(year=current_date.year - amount)
+            elif unit == 'month':
+                estimated_month = current_date.month - amount
+                estimated_year = current_date.year
+                while estimated_month <= 0:
+                    estimated_month += 12
+                    estimated_year -= 1
+                estimated_date = current_date.replace(year=estimated_year, month=estimated_month)
+            elif unit == 'week':
+                estimated_date = current_date - timedelta(weeks=amount)
+            elif unit == 'day':
+                estimated_date = current_date - timedelta(days=amount)
+            else:
+                return None
+            
+            return estimated_date.strftime('%Y-%m-%d')
+        except (ValueError, AttributeError):
+            pass
+    
+    return None
 
 def sanitize_filename(name: str) -> str:
     """
@@ -50,7 +137,11 @@ def format_metadata_header(metadata: dict) -> str:
     if metadata.get("url"):
         header_parts.append(f'url = "{metadata["url"]}"')
     if metadata.get("description"):
-        header_parts.append(f'description = "{metadata["description"]}"') 
+        header_parts.append(f'description = "{metadata["description"]}"')
+    if metadata.get("view_count") is not None:
+        header_parts.append(f'view_count = {metadata["view_count"]}')
+    if metadata.get("publish_date"):
+        header_parts.append(f'publish_date = "{metadata["publish_date"]}"')
     
     header_parts.append("\n[transcript]\n\n```")
     return "\n".join(header_parts)
@@ -126,7 +217,43 @@ class YouTubeSubtitleDownloader:
                     return None
         logger.warn("Could not find ytInitialPlayerResponse in page HTML using known patterns.")
         return None
+
+    def _extract_views_and_date_from_html(self, html_content: str) -> Dict[str, Optional[str]]:
+        """
+        Extracts view count and publish date from HTML content.
+        """
+        views = None
+        publish_date = None
         
+        # Look for view count and date in the watch info text
+        # Pattern: "2.7M views" and "6 years ago" or "Nov 5, 2018"
+        info_pattern = r'<span[^>]*>([0-9.,KMB]+\s*views?)</span>.*?<span[^>]*>([^<]+(?:ago|[0-9]{4}))</span>'
+        info_match = re.search(info_pattern, html_content, re.IGNORECASE | re.DOTALL)
+        
+        if info_match:
+            views_str = info_match.group(1)
+            date_str = info_match.group(2)
+            
+            views = parse_view_count(views_str)
+            publish_date = parse_publish_date(date_str)
+        
+        # Alternative pattern - look for tooltip content which often has full date
+        tooltip_pattern = r'(\d+,?\d*)\s*views\s*•\s*([A-Za-z]{3}\s+\d{1,2},\s+\d{4})'
+        tooltip_match = re.search(tooltip_pattern, html_content)
+        
+        if tooltip_match and not views:
+            views_str = tooltip_match.group(1) + " views"
+            views = parse_view_count(views_str)
+        
+        if tooltip_match and not publish_date:
+            date_str = tooltip_match.group(2)
+            publish_date = parse_publish_date(date_str)
+        
+        return {
+            "views": views,
+            "publish_date": publish_date
+        }
+
     def _populate_video_info(self) -> bool:
         """
         Fetches video page HTML, extracts player_response, 
@@ -146,15 +273,44 @@ class YouTubeSubtitleDownloader:
         # Extract video metadata
         video_details = self.player_response.get("videoDetails", {})
         microformat_renderer = self.player_response.get("microformat", {}).get("playerMicroformatRenderer", {})
+        
+        # Extract views and date from HTML and player response
+        html_info = self._extract_views_and_date_from_html(html_content)
+        
+        # Try to get view count from player response first, then HTML
+        view_count = None
+        if video_details.get("viewCount"):
+            try:
+                view_count = int(video_details["viewCount"])
+            except (ValueError, TypeError):
+                pass
+        if not view_count:
+            view_count = html_info.get("views")
+        
+        # Try to get publish date from microformat first, then HTML
+        publish_date = None
+        if microformat_renderer.get("publishDate"):
+            publish_date = microformat_renderer["publishDate"]
+            # Convert to YYYY-MM-DD format if needed
+            if len(publish_date) > 10:
+                publish_date = publish_date[:10]
+        elif microformat_renderer.get("uploadDate"):
+            publish_date = microformat_renderer["uploadDate"]
+            if len(publish_date) > 10:
+                publish_date = publish_date[:10]
+        if not publish_date:
+            publish_date = html_info.get("publish_date")
 
         self.video_metadata = {
             "title": video_details.get("title") or microformat_renderer.get("title", {}).get("simpleText", "Unknown Title"),
             "channel": video_details.get("author") or microformat_renderer.get("ownerChannelName", "Unknown Channel"),
             "description": (video_details.get("shortDescription") or microformat_renderer.get("description", {}).get("simpleText", "")).split('\n')[0],
             "url": self.video_url,
-            "video_id": self.video_id
+            "video_id": self.video_id,
+            "view_count": view_count,
+            "publish_date": publish_date
         }
-        logger.debug(f"Extracted metadata: Title='{self.video_metadata['title']}', Channel='{self.video_metadata['channel']}'")
+        logger.debug(f"Extracted metadata: Title='{self.video_metadata['title']}', Channel='{self.video_metadata['channel']}', Views={self.video_metadata.get('view_count', 'Unknown')}, Date='{self.video_metadata.get('publish_date', 'Unknown')}'")
 
         # Extract subtitle tracks
         captions_data = self.player_response.get("captions")
