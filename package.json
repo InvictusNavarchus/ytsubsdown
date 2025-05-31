@@ -2,10 +2,10 @@
   "name": "ytsubsdown",
   "version": "0.1.1",
   "description": "YouTube subtitle downloader web application",
-  "main": "index.html",
+  "main": "public/index.html",
   "scripts": {
     "dev": "python dev_server.py",
-    "dev:simple": "python -m http.server 3000",
+    "dev:simple": "cd public && python -m http.server 3000",
     "build": "python build.py",
     "validate": "python build.py",
     "start": "python dev_server.py",

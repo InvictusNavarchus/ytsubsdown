@@ -16,9 +16,9 @@ def optimize_for_production():
     
     # Ensure all required files exist
     required_files = [
-        'index.html',
-        'styles.css', 
-        'script.js',
+        'public/index.html',
+        'public/styles.css', 
+        'public/script.js',
         'vercel.json',
         'requirements.txt',
         'api/get_video_info.py',

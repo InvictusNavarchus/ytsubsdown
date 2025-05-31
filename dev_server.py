@@ -21,6 +21,10 @@ from youtube_downloader import YouTubeSubtitleDownloader, format_metadata_header
 class YTSubsDownHandler(http.server.SimpleHTTPRequestHandler):
     """Custom handler that serves static files and API endpoints"""
     
+    def __init__(self, *args, **kwargs):
+        # Change to public directory for serving static files
+        super().__init__(*args, directory="public", **kwargs)
+    
     def do_POST(self):
         """Handle POST requests to API endpoints"""
         if self.path == '/api/get_video_info':
