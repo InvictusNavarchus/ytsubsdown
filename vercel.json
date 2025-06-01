@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "api/**/*.py": {
-      "runtime": "vercel/python@4.7.2"
-    }
-  }
+  "version": 2,
+  "installCommand": "echo 'No dependencies to install'"
 }
