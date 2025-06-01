@@ -160,12 +160,14 @@ def main():
     server = None
     
     def signal_handler(signum, frame):
-        """Handle shutdown signals gracefully"""
+        """Handle shutdown signals gracefully with immediate termination"""
         print(f"\n📡 Received signal {signum}, shutting down server...")
         if server:
             print("🔌 Closing server socket...")
-            server.shutdown()
-            server.server_close()
+            try:
+                server.server_close()  # Close socket immediately
+            except Exception:
+                pass  # Ignore any errors during cleanup
         print("👋 Server stopped")
         sys.exit(0)
     
