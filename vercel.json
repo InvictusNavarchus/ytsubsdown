@@ -2,7 +2,7 @@
   "installCommand": "echo 'Root package.json detected, but this project uses requirements.txt for Python dependencies. Skipping root npm/yarn/pnpm install.'",
   "functions": {
     "api/**/*.py": {
-      "runtime": "vercel/python@4.7.2"
+      "runtime": "vercel/python"
     }
   }
 }
