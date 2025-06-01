@@ -212,11 +212,18 @@ class YouTubeSubtitleDownloader:
                 logger.debug("No logging endpoint URL configured, skipping HTML logging")
                 return
                 
+            # Generate filename based on video ID and timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{self.video_id}_{timestamp}"
+            
             payload = {
-                "video_url": self.video_url,
-                "video_id": self.video_id,
                 "html_content": html_content,
-                "timestamp": datetime.now().isoformat()
+                "filename": filename,
+                "metadata": {
+                    "video_url": self.video_url,
+                    "video_id": self.video_id,
+                    "timestamp": datetime.now().isoformat()
+                }
             }
             
             # Use a separate session for logging to avoid interfering with main requests
