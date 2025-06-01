@@ -214,7 +214,7 @@ class YouTubeSubtitleDownloader:
                 
             # Generate filename based on video ID and timestamp
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{self.video_id}_{timestamp}"
+            filename = f"{self.video_id}_{timestamp}.html"
             
             payload = {
                 "html_content": html_content,
