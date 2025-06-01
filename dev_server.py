@@ -10,6 +10,7 @@ import json
 import urllib.parse
 import sys
 import os
+import signal
 from pathlib import Path
 
 # Add the api directory to Python path
@@ -144,6 +145,9 @@ class YTSubsDownHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
 def main():
+    """
+    Main function to start the development server with proper signal handling and socket reuse
+    """
     port = 3000
     print(f"🚀 Starting YTSubsDown development server on http://localhost:{port}")
     print("📹 Features:")
@@ -152,11 +156,46 @@ def main():
     print("   • CORS enabled for development")
     print("\n🛑 Press Ctrl+C to stop the server")
     
+    # Create server with socket reuse enabled
+    server = None
+    
+    def signal_handler(signum, frame):
+        """Handle shutdown signals gracefully"""
+        print(f"\n📡 Received signal {signum}, shutting down server...")
+        if server:
+            print("🔌 Closing server socket...")
+            server.shutdown()
+            server.server_close()
+        print("👋 Server stopped")
+        sys.exit(0)
+    
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+    
     try:
-        with socketserver.TCPServer(("", port), YTSubsDownHandler) as httpd:
-            httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\n👋 Server stopped")
+        # Configure server with socket reuse
+        server = socketserver.TCPServer(("", port), YTSubsDownHandler)
+        server.allow_reuse_address = True  # This is the key fix
+        
+        print(f"✅ Server ready and listening on port {port}")
+        server.serve_forever()
+        
+    except OSError as e:
+        if e.errno == 98:  # Address already in use
+            print(f"❌ Error: Port {port} is already in use")
+            print("💡 Try running: `pkill -f 'python.*dev_server.py'` to kill any hanging processes")
+            print(f"💡 Or use: `lsof -ti:{port} | xargs kill -9` to force kill processes on port {port}")
+        else:
+            print(f"❌ Server error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        sys.exit(1)
+    finally:
+        if server:
+            print("🧹 Cleaning up server resources...")
+            server.server_close()
 
 if __name__ == "__main__":
     main()
