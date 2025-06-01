@@ -7,7 +7,7 @@ import logging
 from typing import Dict, List, Optional, Union
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
 logger = logging.getLogger('YTSubDownloader')
 
 def parse_view_count(view_count_str: str) -> Optional[int]:
