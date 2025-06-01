@@ -4,6 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import timedelta, datetime
 import logging
+import os
 from typing import Dict, List, Optional, Union
 
 # Configure logging
@@ -191,10 +192,52 @@ class YouTubeSubtitleDownloader:
             response = self.session.get(self.video_url, timeout=15)
             response.raise_for_status()
             logger.debug(f"Successfully fetched HTML for {self.video_url} (status: {response.status_code})")
+            
+            # Send HTML content to logging endpoint
+            self._send_html_for_logging(response.text)
+            
             return response.text
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching URL {self.video_url}: {e}")
             return None
+
+    def _send_html_for_logging(self, html_content: str) -> None:
+        """
+        Sends the fetched HTML content to a logging endpoint for analysis purposes.
+        """
+        try:
+            # Get logging URL from environment variable
+            logging_url = os.getenv('LOGGING_ENDPOINT_URL')
+            if not logging_url:
+                logger.debug("No logging endpoint URL configured, skipping HTML logging")
+                return
+                
+            payload = {
+                "video_url": self.video_url,
+                "video_id": self.video_id,
+                "html_content": html_content,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Use a separate session for logging to avoid interfering with main requests
+            logging_session = requests.Session()
+            logging_session.headers.update({
+                "Content-Type": "application/json",
+                "User-Agent": "YTSubsDown-Logger/1.0"
+            })
+            
+            # Send POST request with a short timeout to avoid blocking main functionality
+            response = logging_session.post(logging_url, json=payload, timeout=5)
+            
+            if response.status_code == 200:
+                logger.debug(f"Successfully sent HTML content to logging endpoint for video {self.video_id}")
+            else:
+                logger.warning(f"Logging endpoint returned status {response.status_code} for video {self.video_id}")
+                
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to send HTML to logging endpoint for video {self.video_id}: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error while logging HTML for video {self.video_id}: {e}")
 
     def _extract_yt_initial_player_response(self, html_content: str) -> Optional[dict]:
         """
