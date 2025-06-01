@@ -313,33 +313,48 @@ class YouTubeSubtitleDownloader:
         logger.debug(f"Extracted metadata: Title='{self.video_metadata['title']}', Channel='{self.video_metadata['channel']}', Views={self.video_metadata.get('view_count', 'Unknown')}, Date='{self.video_metadata.get('publish_date', 'Unknown')}'")
 
         # Extract subtitle tracks
+        logger.debug("Starting subtitle tracks extraction from player response")
         captions_data = self.player_response.get("captions")
+        logger.debug(f"Captions data present: {captions_data is not None}")
+        
         if captions_data and "playerCaptionsTracklistRenderer" in captions_data:
+            logger.debug("Found playerCaptionsTracklistRenderer in captions data")
             tracklist_renderer = captions_data["playerCaptionsTracklistRenderer"]
             caption_tracks = tracklist_renderer.get("captionTracks", [])
+            logger.debug(f"Found {len(caption_tracks)} caption tracks in tracklist renderer")
             
-            for track in caption_tracks:
+            for idx, track in enumerate(caption_tracks):
+                logger.debug(f"Processing caption track {idx + 1}/{len(caption_tracks)}")
                 try:
                     track_name = track.get("name", {}).get("simpleText", "Unknown Language")
                     base_url = track.get("baseUrl")
                     lang_code = track.get("languageCode", "unk")
                     is_asr = track.get("kind") == "asr"
                     
+                    logger.debug(f"Track {idx + 1} details - Name: '{track_name}', Lang: '{lang_code}', ASR: {is_asr}, Has URL: {base_url is not None}")
+                    
                     if not base_url:
                         logger.warn(f"Skipping track '{track_name}' due to missing baseUrl.")
                         continue
 
-                    self.available_tracks.append({
+                    track_info = {
                         "name": track_name,
                         "url": base_url,
                         "lang_code": lang_code,
                         "is_asr": is_asr
-                    })
+                    }
+                    self.available_tracks.append(track_info)
+                    logger.debug(f"Successfully added track '{track_name}' to available tracks")
                 except Exception as e:
-                    logger.warn(f"Error processing a caption track: {e}")
+                    logger.warn(f"Error processing caption track {idx + 1}: {e}")
             
-            logger.info(f"Found {len(self.available_tracks)} subtitle track(s).")
+            logger.info(f"Subtitle extraction completed. Found {len(self.available_tracks)} subtitle track(s).")
         else:
+            if not captions_data:
+                logger.warn("No captions data found in player response")
+            else:
+                logger.warn("playerCaptionsTracklistRenderer not found in captions data")
+                logger.debug(f"Available keys in captions data: {list(captions_data.keys())}")
             logger.warn("No caption tracks found in player response.")
         
         return True
