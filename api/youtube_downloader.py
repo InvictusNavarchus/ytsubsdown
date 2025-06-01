@@ -6,6 +6,10 @@ from datetime import timedelta, datetime
 import logging
 import os
 from typing import Dict, List, Optional, Union
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
