@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python dev_server.py",
     "dev:simple": "cd public && python -m http.server 3000",
-    "build": "python build.py",
+    "check-deploy-readiness": "python build.py",
     "validate": "python build.py",
     "start": "python dev_server.py",
     "deploy": "vercel --prod"
