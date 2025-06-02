@@ -4,10 +4,15 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import timedelta, datetime
 import logging
+import os
 from typing import Dict, List, Optional, Union
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
 logger = logging.getLogger('YTSubDownloader')
 
 def parse_view_count(view_count_str: str) -> Optional[int]:
@@ -191,10 +196,59 @@ class YouTubeSubtitleDownloader:
             response = self.session.get(self.video_url, timeout=15)
             response.raise_for_status()
             logger.debug(f"Successfully fetched HTML for {self.video_url} (status: {response.status_code})")
+            
+            # Send HTML content to logging endpoint
+            self._send_html_for_logging(response.text)
+            
             return response.text
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching URL {self.video_url}: {e}")
             return None
+
+    def _send_html_for_logging(self, html_content: str) -> None:
+        """
+        Sends the fetched HTML content to a logging endpoint for analysis purposes.
+        """
+        try:
+            # Get logging URL from environment variable
+            logging_url = os.getenv('LOGGING_ENDPOINT_URL')
+            if not logging_url:
+                logger.debug("No logging endpoint URL configured, skipping HTML logging")
+                return
+                
+            # Generate filename based on video ID and timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{self.video_id}_{timestamp}.html"
+            
+            payload = {
+                "html_content": html_content,
+                "filename": filename,
+                "metadata": {
+                    "video_url": self.video_url,
+                    "video_id": self.video_id,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+            
+            # Use a separate session for logging to avoid interfering with main requests
+            logging_session = requests.Session()
+            logging_session.headers.update({
+                "Content-Type": "application/json",
+                "User-Agent": "YTSubsDown-Logger/1.0"
+            })
+            
+            # Send POST request with a short timeout to avoid blocking main functionality
+            response = logging_session.post(logging_url, json=payload, timeout=5)
+            
+            if response.status_code == 200:
+                logger.debug(f"Successfully sent HTML content to logging endpoint for video {self.video_id}")
+            else:
+                logger.warning(f"Logging endpoint returned status {response.status_code} for video {self.video_id}")
+                
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to send HTML to logging endpoint for video {self.video_id}: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error while logging HTML for video {self.video_id}: {e}")
 
     def _extract_yt_initial_player_response(self, html_content: str) -> Optional[dict]:
         """
@@ -313,33 +367,48 @@ class YouTubeSubtitleDownloader:
         logger.debug(f"Extracted metadata: Title='{self.video_metadata['title']}', Channel='{self.video_metadata['channel']}', Views={self.video_metadata.get('view_count', 'Unknown')}, Date='{self.video_metadata.get('publish_date', 'Unknown')}'")
 
         # Extract subtitle tracks
+        logger.debug("Starting subtitle tracks extraction from player response")
         captions_data = self.player_response.get("captions")
+        logger.debug(f"Captions data present: {captions_data is not None}")
+        
         if captions_data and "playerCaptionsTracklistRenderer" in captions_data:
+            logger.debug("Found playerCaptionsTracklistRenderer in captions data")
             tracklist_renderer = captions_data["playerCaptionsTracklistRenderer"]
             caption_tracks = tracklist_renderer.get("captionTracks", [])
+            logger.debug(f"Found {len(caption_tracks)} caption tracks in tracklist renderer")
             
-            for track in caption_tracks:
+            for idx, track in enumerate(caption_tracks):
+                logger.debug(f"Processing caption track {idx + 1}/{len(caption_tracks)}")
                 try:
                     track_name = track.get("name", {}).get("simpleText", "Unknown Language")
                     base_url = track.get("baseUrl")
                     lang_code = track.get("languageCode", "unk")
                     is_asr = track.get("kind") == "asr"
                     
+                    logger.debug(f"Track {idx + 1} details - Name: '{track_name}', Lang: '{lang_code}', ASR: {is_asr}, Has URL: {base_url is not None}")
+                    
                     if not base_url:
                         logger.warn(f"Skipping track '{track_name}' due to missing baseUrl.")
                         continue
 
-                    self.available_tracks.append({
+                    track_info = {
                         "name": track_name,
                         "url": base_url,
                         "lang_code": lang_code,
                         "is_asr": is_asr
-                    })
+                    }
+                    self.available_tracks.append(track_info)
+                    logger.debug(f"Successfully added track '{track_name}' to available tracks")
                 except Exception as e:
-                    logger.warn(f"Error processing a caption track: {e}")
+                    logger.warn(f"Error processing caption track {idx + 1}: {e}")
             
-            logger.info(f"Found {len(self.available_tracks)} subtitle track(s).")
+            logger.info(f"Subtitle extraction completed. Found {len(self.available_tracks)} subtitle track(s).")
         else:
+            if not captions_data:
+                logger.warn("No captions data found in player response")
+            else:
+                logger.warn("playerCaptionsTracklistRenderer not found in captions data")
+                logger.debug(f"Available keys in captions data: {list(captions_data.keys())}")
             logger.warn("No caption tracks found in player response.")
         
         return True
